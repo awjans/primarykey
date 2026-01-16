@@ -10,14 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  install:
+  build-and-test:
     runs-on: ubuntu-latest
-    outputs:
-      postgres-host: ${{ steps.postgres.outputs.postgres-host }}
-      postgres-port: ${{ steps.postgres.outputs.postgres-port }}
-      postgres-database: ${{ steps.postgres.outputs.postgres-database }}
-      postgres-username: ${{ steps.postgres.outputs.postgres-username }}
-      postgres-password: ${{ steps.postgres.outputs.postgres-password }}
     steps:
     - uses: actions/checkout@v4
     - name: Set up PostgreSQL 18
@@ -39,11 +33,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-  build:
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
     - name: Lint with flake8
       id: lint
       run: |
@@ -51,19 +40,14 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-  test:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
     - name: Generate Environment File
       id: generate-env-file
       run: |
-        echo "DB_HOST=${{ needs.install.outputs.postgres-host }}" >> .env
-        echo "DB_PORT=${{ needs.install.outputs.postgres-port }}" >> .env
-        echo "DB_NAME=${{ needs.install.outputs.postgres-database }}" >> .env
-        echo "DB_USER=${{ needs.install.outputs.postgres-username }}" >> .env
-        echo "DB_PASSWORD=${{ needs.install.outputs.postgres-password }}" >> .env
+        echo "DB_HOST=${{ steps.postgres.outputs.postgres-host }}" >> .env
+        echo "DB_PORT=${{ steps.postgres.outputs.postgres-port }}" >> .env
+        echo "DB_NAME=${{ steps.postgres.outputs.postgres-database }}" >> .env
+        echo "DB_USER=${{ steps.postgres.outputs.postgres-username }}" >> .env
+        echo "DB_PASSWORD=${{ steps.postgres.outputs.postgres-password }}" >> .env
     - name: Test with pytest
       id: pytest
       run: |
