@@ -1,2 +1,5 @@
 dotenv
 psycopg2
+
+pytest
+pytest-custom_exit_code
