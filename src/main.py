@@ -1,17 +1,17 @@
 import argparse
-import asyncio
 import logging
 import os
 import pandas as pd
 import sys
+import time
 
 from dotenv import load_dotenv
 
 from dbfactory import DBFactory, DBOperation, DBPrimaryKeyType
 from testpk import TestPrimaryKey
 
-LOGFILE_TMPLT: str = "{pktype}_{operation}_{workers}_{batchsize}_{operations}.log"
-METRICFILE_TMPLT: str = "{pktype}_{operation}_{workers}_{batchsize}_{operations}.csv"
+LOGFILE_TMPLT: str = "{pktype}_{workers}_{batchsize}_{operations}.log"
+METRICFILE_TMPLT: str = "{pktype}_{workers}_{batchsize}_{operations}.csv"
 
 def main() -> None:
     """
@@ -30,8 +30,6 @@ def main() -> None:
     arg.add_argument("--logdir", help="Log directory (Defaults to .)", type=str, default=".")
     arg.add_argument("--pktype", help="Primary key type to test",
                      choices=[e.value for e in DBPrimaryKeyType], type=str, default=DBPrimaryKeyType.BIGINT.value)
-    arg.add_argument("--operation", help="Operation to perform",
-                     choices=[e.value for e in DBOperation], type=str, default=DBOperation.INSERT.value)
     arg.add_argument("--workers", help="Number of worker threads (Defaults to 1)",
                      choices=[1, 2, 4, 8, 16], type=int, default=1)
     arg.add_argument("--batchsize", help="Batch size for operations (Defaults to 1)",
@@ -43,7 +41,7 @@ def main() -> None:
     args = arg.parse_args(sys.argv[1:])
 
     os.makedirs(args.logdir, exist_ok=True)
-    log_path = get_log_path(args.logdir, args.pktype, args.operation, args.workers, args.batchsize, args.operations)
+    log_path = get_log_path(args.logdir, args.pktype, args.workers, args.batchsize, args.operations)
     logging.basicConfig(level=getattr(logging, args.loglevel.upper(), logging.INFO),
                         filename=log_path, filemode='w',
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -54,7 +52,7 @@ def main() -> None:
         raise ValueError("The number of operations must be a multiple of the batch size.")
 
     os.makedirs(args.metricsdir, exist_ok=True)
-    metrics_path = get_metrics_path(args.metricsdir, args.pktype, args.operation, args.workers, args.batchsize, args.operations)
+    metrics_path = get_metrics_path(args.metricsdir, args.pktype, args.workers, args.batchsize, args.operations)
     logging.info(f"Metrics will be written to: {metrics_path}")
 
     load_dotenv()
@@ -69,18 +67,16 @@ def main() -> None:
     tester: TestPrimaryKey = TestPrimaryKey(
         dbfactory=db_factory,
         pktype=DBPrimaryKeyType(args.pktype),
-        operation=DBOperation(args.operation),
         workers=args.workers,
         batchsize=args.batchsize,
         operations=args.operations
     )
-    results: pd.DataFrame = asyncio.run(tester.run_test())
+    results: pd.DataFrame = tester.run_test()
     results.to_csv(metrics_path, index=False)
 
-def get_metrics_path(metrics_dir: str, pktype: str, operation: str, workers: int, batchsize: int, operations: int):
+def get_metrics_path(metrics_dir: str, pktype: str, workers: int, batchsize: int, operations: int):
     metrics_file: str = METRICFILE_TMPLT.format(
         pktype=pktype,
-        operation=operation,
         workers=workers,
         batchsize=batchsize,
         operations=operations
@@ -88,10 +84,9 @@ def get_metrics_path(metrics_dir: str, pktype: str, operation: str, workers: int
     metrics_path: str = os.path.join(metrics_dir, metrics_file)
     return metrics_path
 
-def get_log_path(log_dir: str, pktype: str, operation: str,  workers: int, batchsize: int, operations: int) -> str:
+def get_log_path(log_dir: str, pktype: str,  workers: int, batchsize: int, operations: int) -> str:
     log_file: str = LOGFILE_TMPLT.format(
         pktype=pktype,
-        operation=operation,
         workers=workers,
         batchsize=batchsize,
         operations=operations
@@ -101,4 +96,7 @@ def get_log_path(log_dir: str, pktype: str, operation: str,  workers: int, batch
 
 
 if __name__ == "__main__":
+    start_time = time.perf_counter()
     main()
+    end_time = time.perf_counter()
+    logging.info(f"Total execution time: {end_time - start_time:.2f} seconds")
