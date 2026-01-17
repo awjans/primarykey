@@ -69,18 +69,18 @@ class DBFactory:
         except psycopg2.Error as e:
             raise Exception(f"Failed to connect to database: {e}")
 
-    TEST_INSERT_STATEMENT_PREDICATE: str = "INSERT INTO {table_name} (data) VALUES "
-    TEST_SELECT_STATEMENT_PREDICATE: str = "SELECT * FROM {table_name} WHERE id in "
-    TEST_UPDATE_STATEMENT_PREDICATE: str = "UPDATE {table_name} SET data = %s WHERE id in "
-    TEST_DELETE_STATEMENT_PREDICATE: str = "DELETE FROM {table_name} WHERE id in "
+    TABLE_CREATE: str = """DROP TABLE IF EXISTS {table_name};
+CREATE TABLE {table_name} (
+    id {table_pk} PRIMARY KEY,
+    data CHAR({char_length}) NOT NULL
+);"""
+    TABLE_CHECK: str = "SELECT to_regclass('public.{table_name}');"
+    TABLE_DROP: str = "DROP TABLE IF EXISTS {table_name};"
 
-    TEST_CREATE_TABLE: str = """
-        DROP TABLE IF EXISTS {table_name};
-        CREATE TABLE {table_name} (
-            id {table_pk} PRIMARY KEY,
-            data CHAR({char_length}) NOT NULL
-        );
-    """
+    INSERT_STATEMENT: str = "INSERT INTO {table_name} (data) VALUES {placeholders} RETURNING id;"
+    SELECT_STATEMENT: str = "SELECT * FROM {table_name} WHERE id in ({placeholders});"
+    UPDATE_STATEMENT: str = "UPDATE {table_name} SET data = %s WHERE id in ({placeholders});"
+    DELETE_STATEMENT: str = "DELETE FROM {table_name} WHERE id in ({placeholders});"
 
     CHAR_BIGINT_LENGTH: int = 244
     CHAR_BIGINT_INSERT: str = ("A" * CHAR_BIGINT_LENGTH)
@@ -89,43 +89,71 @@ class DBFactory:
     CHAR_UUID_INSERT: str = ("A" * CHAR_UUID_LENGTH)
     CHAR_UUID_UPDATE: str = ("B" * CHAR_UUID_LENGTH)
 
-    def get_create_table_statement(self, table_type: DBPrimaryKeyType) -> str:
+    def get_table_create_statement(self, table_type: DBPrimaryKeyType) -> str:
         table_name: str = self.get_table_name(table_type)
         char_length: int = self.get_char_length(table_type)
         table_pk: str = self.get_table_pk(table_type)
-        return self.TEST_CREATE_TABLE.format(table_name=table_name, table_pk=table_pk, char_length=char_length)
+        stmt: str = self.TABLE_CREATE.format(table_name=table_name, table_pk=table_pk, char_length=char_length)
+        logging.debug(f"Create table statement for type '{table_type}': {stmt}")
+        return stmt
 
-    def get_insert_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
+    def get_table_check_statement(self, table_type: DBPrimaryKeyType) -> str:
         table_name: str = self.get_table_name(table_type)
-        predicate: str = self.TEST_INSERT_STATEMENT_PREDICATE.format(table_name=table_name)
+        stmt: str = self.TABLE_CHECK.format(table_name=table_name)
+        logging.debug(f"Check table statement for type '{table_type}': {stmt}")
+        return stmt
+ 
+    def get_table_drop_statement(self, table_type: DBPrimaryKeyType) -> str:
+        table_name: str = self.get_table_name(table_type)
+        stmt: str = self.TABLE_DROP.format(table_name=table_name)
+        logging.debug(f"Drop table statement for type '{table_type}': {stmt}")
+        return stmt
+    
+    def get_table_operation_statement(self, table_type: DBPrimaryKeyType, operation: DBOperation, batch_size: int = 1) -> str:
+        if operation == DBOperation.INSERT:
+            return self._get_insert_statement(table_type, batch_size)
+        elif operation == DBOperation.SELECT:
+            return self._get_select_statement(table_type, batch_size)
+        elif operation == DBOperation.UPDATE:
+            return self._get_update_statement(table_type, batch_size)
+        elif operation == DBOperation.DELETE:
+            return self._get_delete_statement(table_type, batch_size)
+        raise ValueError(f"Invalid operation '{operation}'.")
+
+    def _get_insert_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
+        table_name: str = self.get_table_name(table_type)
         placeholders: str = ", ".join(["(%s)"] * batch_size)
-        return predicate + placeholders
+        stmt: str = self.INSERT_STATEMENT.format(table_name=table_name, placeholders=placeholders)
+        logging.debug(f"Insert statement for type '{table_type}' and batch size {batch_size}: {stmt}")
+        return stmt
 
-    def get_select_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
+    def _get_select_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
         table_name: str = self.get_table_name(table_type)
-        predicate: str = self.TEST_SELECT_STATEMENT_PREDICATE.format(table_name=table_name)
         placeholders: str = ", ".join(["%s"] * batch_size)
-        return predicate + "(" + placeholders + ")"
+        stmt: str = self.SELECT_STATEMENT.format(table_name=table_name, placeholders=placeholders)
+        logging.debug(f"Select statement for type '{table_type}' and batch size {batch_size}: {stmt}")
+        return stmt
 
-    def get_update_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
+    def _get_update_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
         table_name: str = self.get_table_name(table_type)
-        predicate: str = self.TEST_UPDATE_STATEMENT_PREDICATE.format(table_name=table_name)
         placeholders: str = ", ".join(["%s"] * batch_size)
-        return predicate + "(" + placeholders + ")"
+        stmt: str = self.UPDATE_STATEMENT.format(table_name=table_name, placeholders=placeholders)
+        logging.debug(f"Update statement for type '{table_type}' and batch size {batch_size}: {stmt}")
+        return stmt
 
-    def get_delete_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
+    def _get_delete_statement(self, table_type: DBPrimaryKeyType, batch_size: int = 1) -> str:
         table_name: str = self.get_table_name(table_type)
-        predicate: str = self.TEST_DELETE_STATEMENT_PREDICATE.format(table_name=table_name)
         placeholders: str = ", ".join(["%s"] * batch_size)
-        return predicate + "(" + placeholders + ")"
+        stmt: str = self.DELETE_STATEMENT.format(table_name=table_name, placeholders=placeholders)
+        logging.debug(f"Delete statement for type '{table_type}' and batch size {batch_size}: {stmt}")
+        return stmt
 
     def get_char_length(self, table_type: DBPrimaryKeyType) -> int:
         if table_type == DBPrimaryKeyType.BIGINT:
             return self.CHAR_BIGINT_LENGTH
         elif table_type == DBPrimaryKeyType.UUIDV4 or table_type == DBPrimaryKeyType.UUIDV7:
             return self.CHAR_UUID_LENGTH
-        else:
-            raise ValueError(f"Invalid table type '{table_type}'.")
+        raise ValueError(f"Invalid table type '{table_type}'.")
     
     def get_char_data(self, table_type: DBPrimaryKeyType, operation: DBOperation) -> str:
         if table_type == DBPrimaryKeyType.BIGINT:
@@ -133,22 +161,17 @@ class DBFactory:
                 return self.CHAR_BIGINT_INSERT
             elif operation == DBOperation.UPDATE:
                 return self.CHAR_BIGINT_UPDATE
-            else:
-                raise ValueError(f"Invalid operation '{operation}' for table type 'bigint'.")
         elif table_type == DBPrimaryKeyType.UUIDV4 or table_type == DBPrimaryKeyType.UUIDV7:
             if operation == DBOperation.INSERT:
                 return self.CHAR_UUID_INSERT
             elif operation == DBOperation.UPDATE:
                 return self.CHAR_UUID_UPDATE
-            else:
-                raise ValueError(f"Invalid operation '{operation}' for table type '{table_type}'.")
-        else:
-            raise ValueError(f"Invalid table type '{table_type}'.")
-
+        raise ValueError(f"Invalid table type '{table_type}' or operation '{operation}'.")
 
     def get_table_name(self, table_type: DBPrimaryKeyType) -> str:
-        return f"test_{table_type.value}"
-    
+        if table_type in DBPrimaryKeyType:
+            return f"test_{table_type.value.lower()}"
+        raise ValueError(f"Invalid table type '{table_type}'.")
 
     def get_table_pk(self, table_type: DBPrimaryKeyType) -> str:
         if table_type == DBPrimaryKeyType.BIGINT:
@@ -157,5 +180,5 @@ class DBFactory:
             return "UUID DEFAULT gen_random_uuid()"
         elif table_type == DBPrimaryKeyType.UUIDV7:
             return "UUID DEFAULT uuidv7()"
-        else:
-            raise ValueError(f"Invalid table type '{table_type}'.")
+        raise ValueError(f"Invalid table type '{table_type}'.")
+ 
