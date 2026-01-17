@@ -69,6 +69,38 @@ class DBFactory:
         except psycopg2.Error as e:
             raise Exception(f"Failed to connect to database: {e}")
 
+    def create_table(self, table_type: DBPrimaryKeyType) -> None:
+        """
+        Create a test table with the specified primary key type.
+
+        :param table_type: The type of primary key for the table.
+        :type table_type: DBPrimaryKeyType
+        :return: None
+        :rtype: None
+        """
+        stmt = self.get_table_create_statement(table_type)
+        with self.get_connection() as conn:
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute(stmt)
+                logging.info(f"Table for type '{table_type}' created successfully.")
+
+    def drop_table(self, table_type: DBPrimaryKeyType) -> None:
+        """
+        Drop the test table with the specified primary key type.
+
+        :param table_type: The type of primary key for the table.
+        :type table_type: DBPrimaryKeyType
+        :return: None
+        :rtype: None
+        """
+        stmt = self.get_table_drop_statement(table_type)
+        with self.get_connection() as conn:
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute(stmt)
+                logging.info(f"Table for type '{table_type}' dropped successfully.")
+
     TABLE_CREATE: str = """DROP TABLE IF EXISTS {table_name};
 CREATE TABLE {table_name} (
     id {table_pk} PRIMARY KEY,
