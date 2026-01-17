@@ -48,6 +48,7 @@ jobs:
         echo "DB_NAME=${{ steps.postgres.outputs.postgres-database }}" >> .env
         echo "DB_USER=${{ steps.postgres.outputs.postgres-username }}" >> .env
         echo "DB_PASSWORD=${{ steps.postgres.outputs.postgres-password }}" >> .env
+        cat .env
     - name: Test with pytest
       id: pytest
       run: |
