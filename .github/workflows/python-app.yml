@@ -21,6 +21,13 @@ jobs:
         echo "DB_USER=pktester" >> $GITHUB_ENV
         echo "DB_PASSWORD=password" >> $GITHUB_ENV
         echo "DB_NAME=pktestdb" >> $GITHUB_ENV
+    - name: Check Environment Variables
+      run: |
+        echo "DB_HOST=$DB_HOST"
+        echo "DB_PORT=$DB_PORT"
+        echo "DB_USER=$DB_USER"
+        echo "DB_PASSWORD=$DB_PASSWORD"
+        echo "DB_NAME=$DB_NAME"
     - name: Set up PostgreSQL 18
       uses: ikalnytskyi/action-setup-postgres@v8
       id: postgres
