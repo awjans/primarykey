@@ -43,7 +43,7 @@ class DBFactory:
         :type name: str | None
         """
         self.host = host if host is not None else os.getenv("DB_HOST", "localhost")
-        self.port = port if port is not None else int(os.getenv("DB_PORT", 5432))
+        self.port = port if port is not None else int(os.getenv("DB_PORT", "5432"))
         self.user = user if user is not None else os.getenv("DB_USER", "postgres")
         self.password = password if password is not None else os.getenv("DB_PASSWORD", "password")
         self.name = dbname if dbname is not None else os.getenv("DB_NAME", "testdb")
