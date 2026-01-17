@@ -214,3 +214,6 @@ __marimo__/
 *.out
 *.synctex.gz
 *.xdv
+
+*.log
+*.csv
