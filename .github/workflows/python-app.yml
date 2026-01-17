@@ -14,14 +14,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Set Environment Variables
+      run: |
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_PORT=5432" >> $GITHUB_ENV
+        echo "DB_USER=pktester" >> $GITHUB_ENV
+        echo "DB_PASSWORD=password" >> $GITHUB_ENV
+        echo "DB_NAME=pktestdb" >> $GITHUB_ENV
     - name: Set up PostgreSQL 18
       uses: ikalnytskyi/action-setup-postgres@v8
       id: postgres
       with:
         postgres-version: "18"
-        username: tester
-        password: password
-        database: testdb
+        username: ${{ env.DB_USER }}
+        password: ${{ env.DB_PASSWORD }}
+        database: ${{ env.DB_NAME }}
+        port: ${{ env.DB_PORT }}
     - name: Set up Python 3.13
       uses: actions/setup-python@v3
       id: python
@@ -40,15 +48,6 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Generate Environment File
-      id: generate-env-file
-      run: |
-        echo "DB_HOST=${{ steps.postgres.outputs.postgres-host }}" >> .env
-        echo "DB_PORT=${{ steps.postgres.outputs.postgres-port }}" >> .env
-        echo "DB_NAME=${{ steps.postgres.outputs.postgres-database }}" >> .env
-        echo "DB_USER=${{ steps.postgres.outputs.postgres-username }}" >> .env
-        echo "DB_PASSWORD=${{ steps.postgres.outputs.postgres-password }}" >> .env
-        cat .env
     - name: Test with pytest
       id: pytest
       run: |
