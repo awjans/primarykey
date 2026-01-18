@@ -81,7 +81,7 @@ def get_metrics_path(metrics_dir: str, pktype: str, workers: int, batchsize: int
         batchsize=batchsize,
         operations=operations
     )
-    metrics_path: str = os.path.join(metrics_dir, metrics_file)
+    metrics_path: str = os.path.abspath(os.path.join(metrics_dir, metrics_file))
     return metrics_path
 
 def get_log_path(log_dir: str, pktype: str,  workers: int, batchsize: int, operations: int) -> str:
@@ -91,7 +91,7 @@ def get_log_path(log_dir: str, pktype: str,  workers: int, batchsize: int, opera
         batchsize=batchsize,
         operations=operations
     )
-    log_path: str = os.path.join(log_dir, log_file)
+    log_path: str = os.path.abspath(os.path.join(log_dir, log_file))
     return log_path
 
 
