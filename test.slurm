@@ -8,7 +8,10 @@
 #SBATCH --mem=32G
 
 if [ -f ~/src/primarykey/.env ]; then
+    echo "Sourcing environment variables from .env file"
     source ~/src/primarykey/.env
+else
+    echo ".env file not found, proceeding without it."
 fi
 
 export POSTGRES_DB=${DB_NAME:=testdb}
