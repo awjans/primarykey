@@ -35,13 +35,14 @@ if [ ${?} -ne 0 ]; then
     exit 1
 fi
 
-singularity run -B /tmp/pgdata:/var/lib/postgresql/18 -B /tmp/pgrun:/var/run/postgresql /tmp/postgres.sif
+singularity run -B /tmp/pgdata:/var/lib/postgresql/18 -B /tmp/pgrun:/var/run/postgresql /tmp/postgres.sif &
 export POSTGRES_PID=${$}
 if [ -z "${POSTGRES_PID}" ]; then
     echo "Failed to start PostgreSQL in Singularity container."
     exit 1
 fi
 echo "Started PostgreSQL with PID ${POSTGRES_PID}"
+sleep 10
 
 if [ "${HOSTNAME}" != "ArchChancellor" ]; then
     export OPERATIONS=16000000
