@@ -2,7 +2,7 @@
 #SBATCH --job-name=primarykey_run
 #SBATCH --output=primarykey_run.out
 #SBATCH --error=primarykey_run.err
-#SBATCH --time=00:00:10
+#SBATCH --time=11:00:00
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
