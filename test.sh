@@ -13,7 +13,7 @@ mdir=$(realpath ~/metrics)
 
 if [ ! -d ./.venv ]; then
 	echo "Virtual environment not found. Creating..."
-	python3 -m venv ./.venv
+	python3.13 -m venv ./.venv
 else
 	echo "Using existing virtual environment."
 fi
