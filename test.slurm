@@ -20,7 +20,7 @@ export POSTGRES_PASSWORD=${DB_PASSWORD:=password}
 
 if [ "${HOSTNAME}" != "ArchChancellor" ]; then
     module load tools/Singularity/latest
-    module load module load lang/Python/3.13.5-GCCcore-14.3.0
+    module load lang/Python/3.13.5-GCCcore-14.3.0
 fi
 
 mkdir -p /tmp/pgdata /tmp/pgrun
